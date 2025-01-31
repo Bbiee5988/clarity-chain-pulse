@@ -27,6 +27,31 @@ Clarinet.test({
 });
 
 Clarinet.test({
+  name: "Cannot record duplicate or out-of-order blocks",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get("deployer")!;
+    
+    let block = chain.mineBlock([
+      Tx.contractCall(
+        "chain-pulse",
+        "record-block-metrics",
+        [types.uint(2), types.uint(10), types.uint(5), types.uint(1000), types.uint(12345)],
+        deployer.address
+      ),
+      Tx.contractCall(
+        "chain-pulse", 
+        "record-block-metrics",
+        [types.uint(1), types.uint(10), types.uint(5), types.uint(1000), types.uint(12345)],
+        deployer.address
+      ),
+    ]);
+
+    block.receipts[0].result.expectOk(true);
+    block.receipts[1].result.expectErr(102);
+  },
+});
+
+Clarinet.test({
   name: "Can record and retrieve block metrics",
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get("deployer")!;
@@ -87,7 +112,8 @@ Clarinet.test({
       {
         'transactions': types.uint(10),
         'addresses': types.uint(5), 
-        'volume': types.uint(1000)
+        'volume': types.uint(1000),
+        'last-height': types.uint(1)
       }
     );
   },
